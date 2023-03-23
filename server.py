@@ -101,7 +101,6 @@ async def javascript(request):
 
 async def offer(request):
     params = await request.json()
-    print(params)
     offer = RTCSessionDescription(sdp=params["sdp"], type=params["type"])
 
     pc = RTCPeerConnection()
