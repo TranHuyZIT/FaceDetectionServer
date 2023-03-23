@@ -6,6 +6,7 @@ import os
 import ssl
 import uuid
 
+import aiohttp_cors as aiohttp_cors
 import cv2
 from aiohttp import web
 from av import VideoFrame
@@ -161,6 +162,7 @@ async def offer(request):
     # send answer
     answer = await pc.createAnswer()
     await pc.setLocalDescription(answer)
+    print(json.dumps({"sdp": pc.localDescription.sdp, "type": pc.localDescription.type}))
 
     return web.Response(
         content_type="application/json",
@@ -176,6 +178,10 @@ async def on_shutdown(app):
     await asyncio.gather(*coros)
     pcs.clear()
 
+async def handler(request):
+    response = web.Response(text='Hello, world!')
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    return response
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -184,7 +190,7 @@ if __name__ == "__main__":
     parser.add_argument("--cert-file", help="SSL certificate file (for HTTPS)")
     parser.add_argument("--key-file", help="SSL key file (for HTTPS)")
     parser.add_argument(
-        "--host", default="0.0.0.0", help="Host for HTTP server (default: 0.0.0.0)"
+        "--host", default="localhost", help="Host for HTTP server (default: 0.0.0.0)"
     )
     parser.add_argument(
         "--port", type=int, default=8080, help="Port for HTTP server (default: 8080)"
@@ -209,6 +215,16 @@ if __name__ == "__main__":
     app.router.add_get("/", index)
     app.router.add_get("/client.js", javascript)
     app.router.add_post("/offer", offer)
+    cors = aiohttp_cors.setup(app, defaults={
+        "*": aiohttp_cors.ResourceOptions(
+            allow_credentials=True,
+            expose_headers="*",
+            allow_headers="*"
+        )
+    })
+    resource = cors.add(app.router.add_resource("/hello"))
+    cors.add(resource.add_route("POST", handler))
     web.run_app(
         app
     )
+
