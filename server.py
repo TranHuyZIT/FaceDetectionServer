@@ -35,6 +35,7 @@ class VideoTransformTrack(MediaStreamTrack):
 
     async def recv(self):
         frame = await self.track.recv()
+        print("recv running!")
         if self.transform == "cartoon":
             img = frame.to_ndarray(format="bgr24")
 
@@ -164,12 +165,15 @@ async def offer(request):
     await pc.setLocalDescription(answer)
     print(json.dumps({"sdp": pc.localDescription.sdp, "type": pc.localDescription.type}))
 
-    return web.Response(
+    response = web.Response(
         content_type="application/json",
+
         text=json.dumps(
             {"sdp": pc.localDescription.sdp, "type": pc.localDescription.type}
         ),
     )
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    return response
 
 
 async def on_shutdown(app):
@@ -179,8 +183,7 @@ async def on_shutdown(app):
     pcs.clear()
 
 async def handler(request):
-    response = web.Response(text='Hello, world!')
-    response.headers['Access-Control-Allow-Origin'] = '*'
+    response = web.Response(text="Hello, world!")
     return response
 
 if __name__ == "__main__":
@@ -215,10 +218,6 @@ if __name__ == "__main__":
     app.router.add_get("/", index)
     app.router.add_get("/client.js", javascript)
     app.router.add_post("/offer", offer)
-    # Setup application routes.
-    app.router.add_route("POST", "/offer1", offer)
-
-    # Configure default CORS settings.
     cors = aiohttp_cors.setup(app, defaults={
         "*": aiohttp_cors.ResourceOptions(
                 allow_credentials=True,
@@ -226,11 +225,8 @@ if __name__ == "__main__":
                 allow_headers="*",
             )
     })
-
-# Configure CORS on all routes.
-for route in list(app.router.routes()):
-    cors.add(route)
-    
+    resource = cors.add(app.router.add_resource("/hello"))
+    cors.add(resource.add_route("POST", handler))
     web.run_app(
         app
     )
