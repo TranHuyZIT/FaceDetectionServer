@@ -215,15 +215,22 @@ if __name__ == "__main__":
     app.router.add_get("/", index)
     app.router.add_get("/client.js", javascript)
     app.router.add_post("/offer", offer)
+    # Setup application routes.
+    app.router.add_route("POST", "/offer1", offer)
+
+    # Configure default CORS settings.
     cors = aiohttp_cors.setup(app, defaults={
         "*": aiohttp_cors.ResourceOptions(
-            allow_credentials=True,
-            expose_headers="*",
-            allow_headers="*"
-        )
+                allow_credentials=True,
+                expose_headers="*",
+                allow_headers="*",
+            )
     })
-    resource = cors.add(app.router.add_resource("/hello"))
-    cors.add(resource.add_route("POST", handler))
+
+# Configure CORS on all routes.
+for route in list(app.router.routes()):
+    cors.add(route)
+    
     web.run_app(
         app
     )
