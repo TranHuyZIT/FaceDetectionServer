@@ -68,7 +68,6 @@ async def javascript(request):
 
 async def offer(request):
     params = await request.json()
-    print(params)
     offer = RTCSessionDescription(sdp=params["sdp"], type=params["type"])
 
     pc = RTCPeerConnection()
@@ -182,15 +181,14 @@ if __name__ == "__main__":
     app.router.add_get("/", index)
     app.router.add_get("/client.js", javascript)
     app.router.add_post("/offer", offer)
-    app.add_routes([web.get('/', handler)])
     cors = aiohttp_cors.setup(app, defaults={
         "*": aiohttp_cors.ResourceOptions(
-            allow_credentials=True,
-            expose_headers="*",
-            allow_headers="*"
-        )
+                allow_credentials=True,
+                expose_headers="*",
+                allow_headers="*",
+            )
     })
-    resource = cors.add(app.router.add_resource("/offer"))
+    resource = cors.add(app.router.add_resource("/hello"))
     cors.add(resource.add_route("POST", handler))
     web.run_app(
         app
