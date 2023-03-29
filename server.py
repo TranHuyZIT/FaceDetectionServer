@@ -9,7 +9,10 @@ import aiohttp_cors as aiohttp_cors
 import cv2
 import face_recognition
 from aiohttp import web
+import numpy as np
 from av import VideoFrame
+
+import register
 
 from aiortc import MediaStreamTrack, RTCPeerConnection, RTCSessionDescription
 from aiortc.contrib.media import MediaBlackhole, MediaPlayer, MediaRecorder, MediaRelay
@@ -20,6 +23,7 @@ logger = logging.getLogger("pc")
 pcs = set()
 relay = MediaRelay()
 
+dem = 1
 
 class VideoTransformTrack(MediaStreamTrack):
     """
@@ -27,33 +31,23 @@ class VideoTransformTrack(MediaStreamTrack):
     """
 
     kind = "video"
-    face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
-    landmark_detector = cv2.face.createFacemarkLBF()
-    landmark_detector.loadModel('lbfmodel.yaml')
+    # face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+    # landmark_detector = cv2.face.createFacemarkLBF()
+    # landmark_detector.loadModel('lbfmodel.yaml')
     def __init__(self, track, transform):
         super().__init__()  # don't forget this!
         self.track = track
         self.transform = transform
 
+
     async def recv(self):
         frame = await self.track.recv()
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        faces = self.face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
-        for (x, y, w, h) in faces:
-            # Draw a rectangle around the face
-            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-
-            # Extract the face region
-            face_region = frame[y:y + h, x:x + w]
-
-            # Detect the facial landmarks in the face region
-            _, landmarks = self.landmark_detector.fit(gray, faces)
-
-            # Loop through each facial landmark and draw a circle
-            for landmark in landmarks:
-                for x, y in landmark[0]:
-                    cv2.circle(face_region, (x, y), 1, (0, 0, 255), -1)
-        return frame;
+        global dem
+        img = frame.to_ndarray(format="bgr24")
+        if dem == 1:
+            register.process(img, 'Thai Ha')
+            dem+=1
+        return frame
 
 
 async def index(request):
