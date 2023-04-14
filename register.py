@@ -30,7 +30,7 @@ def process(image, name):
 
 
 def main():
-  image = cv2.imread("hduy.png")
+  image = cv2.imread("img/hduy.png")
   process(image, "Hoang Duy")
 
 main()

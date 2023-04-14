@@ -32,10 +32,13 @@ def face_confidence(face_distance, face_match_threshold=0.6):
   linear_val = (1.0 - face_distance) / (range * 2.0)
 
   if face_distance > face_match_threshold:
-    return str(round(linear_val * 100, 2)) + '%'
+    return str(round(linear_val * 100, 2))
   else:
     value = (linear_val + ((1.0 - linear_val) * math.pow((linear_val - 0.5) * 2, 0.2))) * 100
-    return str(round(value, 2)) + '%'
+    return str(round(value, 2))
+
+def check_null(input_list):
+  return [] if input_list is None else input_list
 
 
 class VideoTransformTrack(MediaStreamTrack):
@@ -78,11 +81,11 @@ class VideoTransformTrack(MediaStreamTrack):
     print(self.process_current_frame)
     print(type(img))
 
-    if self.counter % 3 == 0:
+    if self.counter % 2 == 0:
       small_frame = cv2.resize(img, (0, 0), fx=0.25, fy=0.25)
       rgb_small_frame = small_frame[:, :, ::-1]
       self.face_locations = face_recognition.face_locations(small_frame)  # Lấy vị trí khuôn mặt
-      if self.counter % 4 == 0:
+      if self.counter % 5 == 0:
         self.face_encodings = face_recognition.face_encodings(small_frame,
                                                           self.face_locations) # Mã hóa khuôn mặt về vector 128 chiều
 
@@ -97,8 +100,16 @@ class VideoTransformTrack(MediaStreamTrack):
         if matches[best_match_index]:
             name = self.known_face_names[best_match_index]
             confidence = face_confidence(face_distances[best_match_index])
+            if float(confidence) > 95:
+              f = open('result.json', 'r+')
+              data = check_null(json.load(f))
+              f.close()
+              f = open('result.json', 'w')
+              if name not in data:
+                data.append(name)
+              f.write(json.dumps(data))
 
-        self.face_names.append(f'{name} ({confidence})')
+        self.face_names.append(f'{name} ({confidence}%)')
 
     self.process_current_frame = not self.process_current_frame
 
@@ -145,7 +156,6 @@ async def offer(request):
   log_info("Created for %s", request.remote)
 
   # prepare local media
-  player = MediaPlayer(os.path.join(ROOT, "demo-instruct.wav"))
   if args.record_to:
     recorder = MediaRecorder(args.record_to)
   else:
@@ -245,8 +255,6 @@ if __name__ == "__main__":
 
   app = web.Application()
   app.on_shutdown.append(on_shutdown)
-  app.router.add_get("/", index)
-  app.router.add_get("/client.js", javascript)
   app.router.add_post("/offer", offer)
   cors = aiohttp_cors.setup(app, defaults={
     "*": aiohttp_cors.ResourceOptions(
@@ -255,8 +263,6 @@ if __name__ == "__main__":
       allow_headers="*",
     )
   })
-  resource = cors.add(app.router.add_resource("/hello"))
-  cors.add(resource.add_route("POST", handler))
   web.run_app(
     app
   )
